@@ -23,14 +23,20 @@ const EventCards = ({ title, image, slug, location, date, time }: Props) => {
   };
 
   return (
-    <Link href={`/events/${slug}`} id="event-card" onClick={handleEventCardClick}>
-      <Image
-        src={image}
-        alt="title"
-        width={410}
-        height={300}
-        className="poster"
-      />
+    <Link
+      href={`/events/${slug}`}
+      id="event-card"
+      onClick={handleEventCardClick}
+    >
+      <div>
+        <Image
+          src={image}
+          alt="title"
+          width={410}
+          height={300}
+          className="poster"
+        />
+      </div>
       <div className=" flex flex-row gap-2">
         <Image src={"/icons/pin.svg"} alt="location" width={14} height={14} />
         <p>{location}</p>
