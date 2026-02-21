@@ -1,4 +1,4 @@
-import EventCards from "@/components/EventCards";
+import EventCards from "@/components/EventCard";
 import ExploreBtn from "@/components/ExploreBtn";
 import { events, EventType } from "@/lib/constants";
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL;
