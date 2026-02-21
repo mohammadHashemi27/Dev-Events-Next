@@ -4,7 +4,7 @@ import { Schema, model, models, InferSchemaType } from "mongoose";
 /* Schema             */
 /* ------------------ */
 
-const EventSchema = new Schema(
+ export const EventSchema = new Schema(
   {
     title: {
       type: String,
@@ -57,6 +57,7 @@ const EventSchema = new Schema(
       type: String,
       required: true,
       enum: ["online", "offline", "hybrid"],
+      set: (v: string) => v.trim().toLowerCase(),
     },
     audience: {
       type: String,
@@ -179,6 +180,6 @@ EventSchema.index({ date: 1, mode: 1 });
 /* Model Export       */
 /* ------------------ */
 
-export const Event = models.Event || model("Event", EventSchema);
+export const MongoDb = models.Event || model("Event", EventSchema);
 
-export default Event;
+export default MongoDb;
