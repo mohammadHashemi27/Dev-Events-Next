@@ -7,6 +7,8 @@ import BookEvent from "@/components/BookEvent";
 import EventCard from "@/components/EventCard";
 import { cacheLife } from "next/cache";
 
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL;
+
 const EventDetailItem = ({
   icon,
   alt,
@@ -43,32 +45,30 @@ const EventTags = ({ tags }: { tags: string[] }) => (
   </div>
 );
 
-const EventDetails = async ({ params }: { params: { slug: string } }) => {
+const EventDetails = async ({ params }: { params: Promise<string> }) => {
   "use cache";
   cacheLife("hours");
-
-  const slug = params.slug;
-
-  if (!slug) return notFound();
-
-  const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
+  const slug = await params;
 
   let event;
-
   try {
     const request = await fetch(`${BASE_URL}/api/events/${slug}`, {
       next: { revalidate: 60 },
     });
 
     if (!request.ok) {
-      if (request.status === 404) return notFound();
+      if (request.status === 404) {
+        return notFound();
+      }
       throw new Error(`Failed to fetch event: ${request.statusText}`);
     }
 
     const response = await request.json();
     event = response.event;
 
-    if (!event) return notFound();
+    if (!event) {
+      return notFound();
+    }
   } catch (error) {
     console.error("Error fetching event:", error);
     return notFound();
@@ -102,6 +102,7 @@ const EventDetails = async ({ params }: { params: { slug: string } }) => {
       </div>
 
       <div className="details">
+        {/*    Left Side - Event Content */}
         <div className="content">
           <Image
             src={image}
@@ -144,6 +145,7 @@ const EventDetails = async ({ params }: { params: { slug: string } }) => {
           <EventTags tags={tags} />
         </div>
 
+        {/*    Right Side - Booking Form */}
         <aside className="booking">
           <div className="signup-card">
             <h2>Book Your Spot</h2>
@@ -165,12 +167,11 @@ const EventDetails = async ({ params }: { params: { slug: string } }) => {
         <div className="events">
           {similarEvents.length > 0 &&
             similarEvents.map((similarEvent: IEvent) => (
-              <EventCard key={similarEvent._id} {...similarEvent} />
+              <EventCard key={similarEvent.title} {...similarEvent} />
             ))}
         </div>
       </div>
     </section>
   );
 };
-
 export default EventDetails;
