@@ -14,11 +14,11 @@ const EventCard = ({ title, image, slug, location, date, time }: Props) => {
   return (
     <Link href={`/events/${slug}`} id="event-card">
       <Image
+        className="poster  transition duration-150 ease-in-out hover:scale-105"
         src={image}
         alt={title}
         width={410}
         height={300}
-        className="poster"
       />
 
       <div className="flex flex-row gap-2">
