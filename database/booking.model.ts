@@ -1,23 +1,28 @@
-import { Schema, model, models, InferSchemaType, Types } from "mongoose";
+import { Schema, model, models, Document, Types } from "mongoose";
+import Event from "./event.model";
 
-/* ------------------ */
-/* Schema             */
-/* ------------------ */
+// TypeScript interface
+export interface IBooking extends Document {
+  eventId: Types.ObjectId;
+  email: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
 
-const BookingSchema = new Schema(
+const BookingSchema = new Schema<IBooking>(
   {
     eventId: {
       type: Schema.Types.ObjectId,
       ref: "Event",
-      required: true,
+      required: [true, "Event ID is required"],
     },
     email: {
       type: String,
-      required: true,
+      required: [true, "Email is required"],
       trim: true,
       lowercase: true,
       validate: {
-        validator(email: string) {
+        validator: function (email: string) {
           const emailRegex =
             /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
           return emailRegex.test(email);
@@ -26,43 +31,29 @@ const BookingSchema = new Schema(
       },
     },
   },
-  { timestamps: true },
+  {
+    timestamps: true,
+  },
 );
 
-/* ------------------ */
-/* Types              */
-/* ------------------ */
-
-export type BookingType = InferSchemaType<typeof BookingSchema>;
-
-/* ------------------ */
-/* Pre Save Hook      */
-/* ------------------ */
-
+// ✅ Correct async pre-hook (NO next)
 BookingSchema.pre("save", async function () {
-  if (this.isModified("eventId") || this.isNew) {
-    const EventModel = models.Event;
+  const booking = this as IBooking;
 
-    if (!EventModel) {
-      throw new Error("Event model is not registered");
-    }
-
-    const eventExists = await EventModel.findById(
-      this.eventId as Types.ObjectId,
-    ).select("_id");
+  if (booking.isModified("eventId") || booking.isNew) {
+    const eventExists = await Event.findById(booking.eventId).select("_id");
 
     if (!eventExists) {
-      const error = new Error(`Event with ID ${this.eventId} does not exist`);
+      const error = new Error(
+        `Event with ID ${booking.eventId} does not exist`,
+      );
       error.name = "ValidationError";
       throw error;
     }
   }
 });
 
-/* ------------------ */
-/* Indexes            */
-/* ------------------ */
-
+// Indexes
 BookingSchema.index({ eventId: 1 });
 BookingSchema.index({ eventId: 1, createdAt: -1 });
 BookingSchema.index({ email: 1 });
@@ -71,10 +62,6 @@ BookingSchema.index(
   { unique: true, name: "uniq_event_email" },
 );
 
-/* ------------------ */
-/* Model Export       */
-/* ------------------ */
-
-export const Booking = models.Booking || model("Booking", BookingSchema);
+const Booking = models.Booking || model<IBooking>("Booking", BookingSchema);
 
 export default Booking;

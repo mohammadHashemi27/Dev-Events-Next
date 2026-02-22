@@ -1,10 +1,32 @@
-import { Schema, model, models, InferSchemaType } from "mongoose";
+import { Schema, model, models, HydratedDocument } from "mongoose";
 
-/* ------------------ */
-/* Schema             */
-/* ------------------ */
+/* ------------------ Types ------------------ */
 
- export const EventSchema = new Schema(
+export interface IEvent {
+  _id: Key | null | undefined;
+  title: string;
+  slug: string;
+  description: string;
+  overview: string;
+  image: string;
+  venue: string;
+  location: string;
+  date: string;
+  time: string;
+  mode: "online" | "offline" | "hybrid";
+  audience: string;
+  agenda: string[];
+  organizer: string;
+  tags: string[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export type EventDocument = HydratedDocument<IEvent>;
+
+/* ------------------ Schema ------------------ */
+
+const EventSchema = new Schema<IEvent>(
   {
     title: {
       type: String,
@@ -55,9 +77,8 @@ import { Schema, model, models, InferSchemaType } from "mongoose";
     },
     mode: {
       type: String,
-      required: true,
       enum: ["online", "offline", "hybrid"],
-      set: (v: string) => v.trim().toLowerCase(),
+      required: true,
     },
     audience: {
       type: String,
@@ -67,10 +88,10 @@ import { Schema, model, models, InferSchemaType } from "mongoose";
     agenda: {
       type: [String],
       required: true,
-      validate: {
-        validator: (v: string[]) => v.length > 0,
-        message: "At least one agenda item is required",
-      },
+      validate: [
+        (v: string[]) => v.length > 0,
+        "At least one agenda item is required",
+      ],
     },
     organizer: {
       type: String,
@@ -80,45 +101,34 @@ import { Schema, model, models, InferSchemaType } from "mongoose";
     tags: {
       type: [String],
       required: true,
-      validate: {
-        validator: (v: string[]) => v.length > 0,
-        message: "At least one tag is required",
-      },
+      validate: [(v: string[]) => v.length > 0, "At least one tag is required"],
     },
   },
-  { timestamps: true },
+  {
+    timestamps: true,
+  },
 );
 
-/* ------------------ */
-/* Types              */
-/* ------------------ */
+/* ------------------ Hooks ------------------ */
 
-export type EventType = InferSchemaType<typeof EventSchema>;
+// async hook (modern style — no next)
+EventSchema.pre("save", async function () {
+  const event = this as EventDocument;
 
-/* ------------------ */
-/* Pre Save Hook      */
-/* ------------------ */
-
-EventSchema.pre("save", function () {
-  // Generate slug
-  if (this.isModified("title") || this.isNew) {
-    this.slug = generateSlug(this.title);
+  if (event.isModified("title") || event.isNew) {
+    event.slug = generateSlug(event.title);
   }
 
-  // Normalize date
-  if (this.isModified("date")) {
-    this.date = normalizeDate(this.date);
+  if (event.isModified("date")) {
+    event.date = normalizeDate(event.date);
   }
 
-  // Normalize time
-  if (this.isModified("time")) {
-    this.time = normalizeTime(this.time);
+  if (event.isModified("time")) {
+    event.time = normalizeTime(event.time);
   }
 });
 
-/* ------------------ */
-/* Helpers            */
-/* ------------------ */
+/* ------------------ Helpers ------------------ */
 
 function generateSlug(title: string): string {
   return title
@@ -132,11 +142,9 @@ function generateSlug(title: string): string {
 
 function normalizeDate(dateString: string): string {
   const date = new Date(dateString);
-
   if (isNaN(date.getTime())) {
     throw new Error("Invalid date format");
   }
-
   return date.toISOString().split("T")[0];
 }
 
@@ -157,29 +165,21 @@ function normalizeTime(timeString: string): string {
     if (period === "AM" && hours === 12) hours = 0;
   }
 
-  if (
-    hours < 0 ||
-    hours > 23 ||
-    parseInt(minutes) < 0 ||
-    parseInt(minutes) > 59
-  ) {
+  if (hours > 23 || parseInt(minutes) > 59) {
     throw new Error("Invalid time values");
   }
 
   return `${hours.toString().padStart(2, "0")}:${minutes}`;
 }
 
-/* ------------------ */
-/* Indexes            */
-/* ------------------ */
+/* ------------------ Indexes ------------------ */
 
 EventSchema.index({ slug: 1 }, { unique: true });
 EventSchema.index({ date: 1, mode: 1 });
 
-/* ------------------ */
-/* Model Export       */
-/* ------------------ */
+/* ------------------ Model ------------------ */
 
-export const MongoDb = models.Event || model("Event", EventSchema);
+// Safe model creation for Next.js hot reload
+const Event = models.Event ?? model<IEvent>("Event", EventSchema);
 
-export default MongoDb;
+export default Event;

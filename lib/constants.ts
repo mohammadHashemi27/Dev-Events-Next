@@ -5,6 +5,7 @@ export type EventType = {
   location: string;
   date: string;
   time: string;
+
 };
 
 export const events: EventType[] = [
